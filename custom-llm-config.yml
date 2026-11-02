@@ -1,0 +1,143 @@
+# SiliconFlow 混搭角色配置（custom provider）
+#
+# 策略：执行准 + 轻量省 + 报告强
+# - DeepSeek V4 Pro：高强度推理组（编排/计划/导师/编码/渗透执行）
+# - Qwen3.6-35B-A3B（MoE 3B 激活）：轻量工具人组（搜索/富化/反思/结构化）
+# - GLM-5.2：最终报告组（simple 角色承担 GetTaskResult 终报告 + 标题摘要）
+#
+# 价格取官方定价近似值，仅用于成本统计展示。
+
+# ============ 高强度推理组：DeepSeek V4 Pro ============
+
+primary_agent:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 16384
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+assistant:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 16384
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+generator:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 32768
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+refiner:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 32768
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+adviser:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 16384
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+coder:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 20480
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+pentester:
+  model: deepseek-ai/DeepSeek-V4-Pro
+  n: 1
+  max_tokens: 16384
+  price:
+    input: 0.435
+    output: 0.87
+    cache_read: 0.003625
+
+installer:
+  model: deepseek-ai/DeepSeek-V4-Flash
+  n: 1
+  max_tokens: 12288
+  price:
+    input: 0.14
+    output: 0.28
+    cache_read: 0.0028
+
+# ============ 轻量工具人组：Qwen3.6-35B-A3B ============
+
+searcher:
+  model: Qwen/Qwen3.6-35B-A3B
+  temperature: 0.5
+  top_p: 0.9
+  n: 1
+  max_tokens: 4096
+  price:
+    input: 0.375
+    output: 2.25
+    cache_read: 0.075
+
+enricher:
+  model: Qwen/Qwen3.6-35B-A3B
+  temperature: 0.5
+  top_p: 0.9
+  n: 1
+  max_tokens: 4096
+  price:
+    input: 0.375
+    output: 2.25
+    cache_read: 0.075
+
+reflector:
+  model: Qwen/Qwen3.6-35B-A3B
+  temperature: 0.5
+  top_p: 0.9
+  n: 1
+  max_tokens: 8192
+  price:
+    input: 0.375
+    output: 2.25
+    cache_read: 0.075
+
+simple_json:
+  model: Qwen/Qwen3.6-35B-A3B
+  temperature: 0.3
+  top_p: 0.9
+  n: 1
+  max_tokens: 4096
+  json: true
+  price:
+    input: 0.375
+    output: 2.25
+    cache_read: 0.075
+
+# ============ 报告组：GLM-5.2 ============
+# simple 角色承担最终任务报告（GetTaskResult）及标题/摘要类轻量调用
+
+simple:
+  model: zai-org/GLM-5.2
+  temperature: 0.6
+  top_p: 0.9
+  n: 1
+  max_tokens: 16384
+  price:
+    input: 1.40
+    output: 4.40
+    cache_read: 0.26

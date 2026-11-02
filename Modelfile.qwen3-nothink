@@ -1,0 +1,93 @@
+# qwen3:8b-nothink - qwen3:8b with thinking force-DISABLED at template level.
+#
+# Why this exists:
+#   PentAGI's Ollama provider never sends the "think" field. Stock qwen3:8b
+#   therefore defaults to thinking=ON, and simple classification calls during
+#   flow creation (image/language/title choosers) take >120s, blowing the
+#   frontend ~46s timeout ("No active tasks" stuck screen).
+#
+# Why a stripped template (v3) instead of minimal condition edits:
+#   Ollama 0.34's template capability scanner advertises "thinking" whenever
+#   the Go template references IsThinkSet/.Think/.Thinking. With that flag on,
+#   the server applies think=TRUE defaults itself and overrides /no_think
+#   attempts. Empirically: stock qwen3:8b + "think":false -> 0.25s and
+#   think_len=0; same prompt rendered by a template that still references
+#   Think vars -> 25-35s with thinking content.
+#   v5 template (ollama 0.34.1 source-verified):
+#   routes.go defaults req.Think=TRUE when m.Capabilities() contains
+#   "thinking" (then values.Think=true AND values.IsThinkSet=true), so
+#   branching on those vars can never force no-thinking (v2 failure), and
+#   stripping them makes the scanner select the GGUF Jinja template which
+#   defaults thinking ON (v3/v4 failure).
+#   Fix: keep an INERT `{{ if false }}<think>{{ .Thinking }}</think>{{ end }}`
+#   node INSIDE the .Messages range - thinking.InferTags detects the tags so
+#   the Go template is selected with thinking capability, while the node
+#   never renders. Actual output hard-codes the official think=false prompt
+#   artifacts:
+#     1) " /no_think" appended to the last user message
+#     2) prefilled EMPTY <think></think> block at the assistant turn
+#   The response parser (state LookingForOpening) puts all generated plain
+#   content into response.content, so tool-call XML still parses normally.
+#
+# Rebuild: ollama create qwen3:8b-nothink -f Modelfile.qwen3-nothink
+# IMPORTANT: after rebuilding, unload the old instance first, otherwise the
+# in-memory runner keeps serving the previous template:
+#   POST /api/generate {"model":"qwen3:8b-nothink","keep_alive":0}
+FROM qwen3:8b
+PARAMETER num_ctx 8192
+TEMPLATE """
+{{- $lastUserIdx := -1 -}}
+{{- range $idx, $msg := .Messages -}}
+{{- if eq $msg.Role "user" }}{{ $lastUserIdx = $idx }}{{ end -}}
+{{- end -}}
+{{- if or .System .Tools }}<|im_start|>system
+{{ if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{{- end -}}
+<|im_end|>
+{{ end }}
+{{- range $i, $_ := .Messages }}
+{{- if false }}<think>{{ .Thinking }}</think>{{ end -}}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}{{- if eq $i $lastUserIdx }} /no_think{{ end }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ if .Content }}{{ .Content }}
+{{- else if .ToolCalls }}<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
+{{- end }}{{ if not $last }}<|im_end|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|im_start|>user
+<tool_response>
+{{ .Content }}
+</tool_response><|im_end|>
+{{ end }}
+{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
+<think>
+
+</think>
+
+{{ end }}
+{{- end }}"""
+PARAMETER repeat_penalty 1
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>

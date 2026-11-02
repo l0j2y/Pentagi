@@ -1,0 +1,67 @@
+# SearXNG instance for PentAGI, deployed inside pentagi-network.
+# Upstream engines are restricted to those reachable from this network
+# (Bing / Baidu / Sogou / 360 verified reachable; Google, DuckDuckGo,
+# Brave, Wikipedia time out from China egress).
+# JSON output format is mandatory: PentAGI calls /search?format=json.
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "PentAGI local SearXNG"
+
+server:
+  # replaced on first review; any >=64 char random string works
+  secret_key: "pentagi-local-searxng-9f3c1a7e2d8b4065a1c7e3f5b8d20469"
+  limiter: false
+  image_proxy: false
+  public_instance: false
+  bind_address: "0.0.0.0"
+  port: 8080
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "auto"
+  formats:
+    - html
+    - json
+
+ui:
+  default_theme: simple
+
+engines:
+  # --- reachable general engines (enabled) ---
+  - name: bing
+    disabled: false
+  - name: baidu
+    disabled: false
+  - name: sogou
+    disabled: false
+  - name: 360search
+    disabled: false
+  # --- unreachable from local network, save the timeout budget ---
+  - name: google
+    disabled: true
+  - name: google cse
+    disabled: true
+  - name: duckduckgo
+    disabled: true
+  - name: brave
+    disabled: true
+  - name: startpage
+    disabled: true
+  - name: wikipedia
+    disabled: true
+  - name: wikidata
+    disabled: true
+  - name: duckduckgo images
+    disabled: true
+  - name: google images
+    disabled: true
+  - name: bing images
+    disabled: true
+
+outgoing:
+  request_timeout: 8
+  max_request_timeout: 15
+  useragent_suffix: ""
